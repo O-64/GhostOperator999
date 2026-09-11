@@ -1,6 +1,8 @@
 from typing import Dict, Any, List
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from .matching_agent import MatchingAgent
 from .recruiter_agent import RecruiterAgent
+
 
 # 3 Job Descriptions
 BENCHMARK_JOBS = [
@@ -208,7 +210,34 @@ class BenchmarkAgent:
     """
 
     @classmethod
-    def run_benchmark(cls, target_job_id: str = "") -> Dict[str, Any]:
+    def _evaluate_candidate(cls, cand: Dict[str, Any], job: Dict[str, Any]) -> Dict[str, Any]:
+        """Evaluate a single candidate against a job (thread-safe)."""
+        match = MatchingAgent.match(cand, job)
+        brief = RecruiterAgent.generate_summary(cand["name"], job["title"], match, use_llm=False)
+        return {
+            "candidateId": cand["id"],
+            "candidateName": cand["name"],
+            "title": cand["title"],
+            "college": cand["college"],
+            "experienceType": cand["experience_type"],
+            "overallScore": match["overallScore"],
+            "skillMatch": match["skillMatch"],
+            "experienceMatch": match["experienceMatch"],
+            "projectRelevance": match["projectRelevance"],
+            "culturalFit": match["culturalFit"],
+            "hackathonBonus": match["hackathonBonus"],
+            "verdict": match["verdict"],
+            "matchedSkills": match["matchedSkills"],
+            "missingSkills": match["missingSkills"],
+            "strengths": match["strengths"],
+            "gaps": match["gaps"],
+            "summary": match["summary"],
+            "hiringRecommendation": brief.get("hiringRecommendation", "Hire with Upskilling"),
+            "executiveSummary": brief.get("executiveSummary", match["summary"])
+        }
+
+    @classmethod
+    def run_benchmark(cls, target_job_id: str = "", max_workers: int = 6) -> Dict[str, Any]:
         results_by_job = {}
 
         for job in BENCHMARK_JOBS:
@@ -217,38 +246,23 @@ class BenchmarkAgent:
                 continue
 
             ranked_list = []
-            for cand in BENCHMARK_CANDIDATES:
-                # Run matching agent
-                match = MatchingAgent.match(cand, job)
-                
-                # Executive summary (fast batch mode)
-                brief = RecruiterAgent.generate_summary(cand["name"], job["title"], match, use_llm=False)
 
-                ranked_list.append({
-                    "candidateId": cand["id"],
-                    "candidateName": cand["name"],
-                    "title": cand["title"],
-                    "college": cand["college"],
-                    "experienceType": cand["experience_type"],
-                    "overallScore": match["overallScore"],
-                    "skillMatch": match["skillMatch"],
-                    "experienceMatch": match["experienceMatch"],
-                    "projectRelevance": match["projectRelevance"],
-                    "culturalFit": match["culturalFit"],
-                    "hackathonBonus": match["hackathonBonus"],
-                    "verdict": match["verdict"],
-                    "matchedSkills": match["matchedSkills"],
-                    "missingSkills": match["missingSkills"],
-                    "strengths": match["strengths"],
-                    "gaps": match["gaps"],
-                    "summary": match["summary"],
-                    "hiringRecommendation": brief.get("hiringRecommendation", "Hire with Upskilling"),
-                    "executiveSummary": brief.get("executiveSummary", match["summary"])
-                })
+            # ── Evaluate all 10 candidates concurrently per job ───────────────
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = {
+                    executor.submit(cls._evaluate_candidate, cand, job): cand
+                    for cand in BENCHMARK_CANDIDATES
+                }
+                for future in as_completed(futures):
+                    try:
+                        ranked_list.append(future.result())
+                    except Exception as exc:
+                        cand = futures[future]
+                        print(f"[BenchmarkAgent WARNING] Failed evaluating {cand['name']}: {exc}")
 
             # Sort descending by overallScore
             ranked_list.sort(key=lambda x: x["overallScore"], reverse=True)
-            
+
             # Assign ranks
             for i, r in enumerate(ranked_list):
                 r["rank"] = i + 1
@@ -264,3 +278,4 @@ class BenchmarkAgent:
             "benchmarkJobs": BENCHMARK_JOBS,
             "resultsByJob": results_by_job
         }
+

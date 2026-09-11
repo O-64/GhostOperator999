@@ -60,9 +60,25 @@ app.get('/', (req, res) => {
 // ─── Error Handler ───────────────────────────────────────────────────────────
 app.use(errorHandler);
 
-// ─── Start (connect to MongoDB Atlas first, then listen) ─────────────────────
-connectDB().then(() => {
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[OK] AI Talent Matrix API running on http://0.0.0.0:${PORT}`);
-  });
+// ─── Global Error Guards (prevents silent crashes) ───────────────────────────
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] Uncaught Exception — server will exit:', err);
+  process.exit(1);
 });
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[FATAL] Unhandled Promise Rejection at:', promise, '| Reason:', reason);
+  process.exit(1);
+});
+
+// ─── Start (connect to MongoDB Atlas first, then listen) ─────────────────────
+connectDB()
+  .then(() => {
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`[OK] AI Talent Matrix API running on http://0.0.0.0:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('[FATAL] Failed to start server — DB connection error:', err.message);
+    process.exit(1);
+  });
