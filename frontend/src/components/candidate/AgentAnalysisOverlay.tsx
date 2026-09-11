@@ -14,13 +14,6 @@ import {
   Cpu
 } from "lucide-react";
 
-export interface AnalysisResult {
-  rank: number;
-  skillLevels: { skill: string; level: number }[];
-  recommendations: { type: string; title: string; description: string }[];
-  overallScore: number;
-}
-
 import { CandidateUser } from "../../types";
 
 export interface AnalysisResult {
