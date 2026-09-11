@@ -5,8 +5,8 @@ import { useAuth } from '../../../context/AuthContext';
 import { CandidateUser, JobPosting, CodingQuestion } from '../../../types';
 import * as api from '../../../lib/api';
 
-import { CandidateNavbar, ProfileRing, AgentWidget, SkillBarChart, CodeEditor } from '../../../components/candidate';
-import { Briefcase, MapPin, DollarSign, CheckCircle, Lock, BookOpen, ChevronRight, Award, Zap, Code2 } from 'lucide-react';
+import { CandidateNavbar, ProfileRing, AgentWidget, SkillBarChart, CodeEditor, AIInterviewModal } from '../../../components/candidate';
+import { Briefcase, MapPin, DollarSign, CheckCircle, Lock, BookOpen, ChevronRight, Award, Zap, Code2, Bot } from 'lucide-react';
 
 const defaultQuestions: CodingQuestion[] = [
   {
@@ -43,6 +43,7 @@ export default function CandidateDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [scoreModalOpen, setScoreModalOpen] = useState(false);
   const [codingTestOpen, setCodingTestOpen] = useState(false);
+  const [interviewModalOpen, setInterviewModalOpen] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState<CodingQuestion | null>(null);
   const [jobs, setJobs] = useState<JobPosting[]>([]);
   const [toastMessage, setToastMessage] = useState('');
@@ -432,23 +433,41 @@ export default function CandidateDashboard() {
                  </button>
 
                  <button 
-                   disabled
-                   className="w-full p-4 border-2 border-stone-200 rounded-2xl flex items-center gap-4 opacity-60 cursor-not-allowed text-left relative overflow-hidden"
-                 >
-                    <div className="w-12 h-12 bg-stone-200 rounded-xl flex items-center justify-center text-stone-500">
-                        <Zap className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <h4 className="font-bold text-stone-800">AI Interview</h4>
-                        <p className="text-sm text-stone-500">Mock technical interview (+30 pts)</p>
-                    </div>
-                    <div className="absolute top-4 right-4 px-2 py-1 bg-stone-200 text-stone-600 text-xs font-bold rounded">
-                        Coming Soon
-                    </div>
-                 </button>
+                    onClick={() => {
+                      setScoreModalOpen(false);
+                      setInterviewModalOpen(true);
+                    }}
+                    className="w-full p-4 border-2 border-stone-200 hover:border-indigo-400 rounded-2xl flex items-center gap-4 group transition-colors text-left relative overflow-hidden"
+                  >
+                     <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
+                         <Bot className="w-6 h-6" />
+                     </div>
+                     <div>
+                         <h4 className="font-bold text-stone-800">AI Mock Interview</h4>
+                         <p className="text-sm text-stone-500">Live technical & behavioral interview (+25 pts)</p>
+                     </div>
+                     <div className="absolute top-4 right-4 px-2.5 py-1 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-full">
+                         Live AI
+                     </div>
+                  </button>
               </div>
            </div>
         </div>
+      )}
+
+      {/* AI Mock Interview Modal */}
+      {interviewModalOpen && (
+        <AIInterviewModal
+          roleTitle={candidate.post || "Full-Stack AI Engineer"}
+          skills={candidate.skills || ["Python", "React", "TypeScript"]}
+          onClose={() => setInterviewModalOpen(false)}
+          onScoreUpdate={async (points) => {
+            const newScore = (candidate.score || 0) + points;
+            await updateCandidateProfile({ score: newScore });
+            setCandidate(prev => prev ? { ...prev, score: newScore } : prev);
+            showToast(`🎉 Earned +${points} points from AI Interview!`);
+          }}
+        />
       )}
 
       {/* Code Editor Modal */}

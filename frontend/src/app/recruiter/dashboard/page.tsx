@@ -13,26 +13,34 @@ import CandidateCard from '../../../components/recruiter/CandidateCard';
 import CompareDrawer from '../../../components/recruiter/CompareDrawer';
 import AICopilot from '../../../components/recruiter/AICopilot';
 import PipelineBoard from '../../../components/recruiter/PipelineBoard';
+import BenchmarkLeaderboard from '../../../components/recruiter/BenchmarkLeaderboard';
+import PPTAnalyzerView from '../../../components/recruiter/PPTAnalyzerView';
+import FraudTrustView from '../../../components/recruiter/FraudTrustView';
+import HackathonPipelineView from '../../../components/recruiter/HackathonPipelineView';
 
 // Lucide icons
 import {
   Sparkles, LogOut, Briefcase, Users, Search, MapPin, DollarSign,
   Plus, X, ChevronDown, Filter, SlidersHorizontal, LayoutDashboard,
   Bot, GitMerge, Zap, Building2, CheckCircle, ArrowUpDown, Scale,
-  TrendingUp, Clock, Award
+  TrendingUp, Clock, Award, Trophy, FileText, ShieldAlert
 } from 'lucide-react';
 
 // Lazy load chart to avoid SSR issues
 const HiringFunnelChart = dynamic(() => import('../../../components/recruiter/HiringFunnelChart'), { ssr: false });
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type Tab = 'dashboard' | 'discovery' | 'shortlisting' | 'pipeline' | 'copilot';
+type Tab = 'dashboard' | 'benchmark' | 'discovery' | 'shortlisting' | 'ppt' | 'fraud' | 'hackathon' | 'pipeline' | 'copilot';
 type SortBy = 'rank' | 'score' | 'match' | 'newest';
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
+  { id: 'benchmark', label: '10 Resumes Benchmark', icon: <Trophy className="w-4 h-4 text-amber-400" /> },
   { id: 'discovery', label: 'Discovery', icon: <Search className="w-4 h-4" /> },
   { id: 'shortlisting', label: 'AI Shortlisting', icon: <Zap className="w-4 h-4" /> },
+  { id: 'ppt', label: 'PPT Intelligence', icon: <FileText className="w-4 h-4 text-purple-400" /> },
+  { id: 'fraud', label: 'Fraud & Trust', icon: <ShieldAlert className="w-4 h-4 text-rose-400" /> },
+  { id: 'hackathon', label: 'Hackathons', icon: <Award className="w-4 h-4 text-amber-300" /> },
   { id: 'pipeline', label: 'Pipeline / ATS', icon: <GitMerge className="w-4 h-4" /> },
   { id: 'copilot', label: 'AI Copilot', icon: <Bot className="w-4 h-4" /> },
 ];
@@ -778,6 +786,26 @@ export default function RecruiterDashboard() {
               />
             </div>
           </div>
+        )}
+
+        {/* ─── TAB: BENCHMARK (10 RESUMES X 3 JOBS) ────────────────────────── */}
+        {activeTab === 'benchmark' && (
+          <BenchmarkLeaderboard />
+        )}
+
+        {/* ─── TAB: PPT INTELLIGENCE ────────────────────────────────────────── */}
+        {activeTab === 'ppt' && (
+          <PPTAnalyzerView />
+        )}
+
+        {/* ─── TAB: FRAUD & TRUST AUDIT ─────────────────────────────────────── */}
+        {activeTab === 'fraud' && (
+          <FraudTrustView candidates={allCandidates} />
+        )}
+
+        {/* ─── TAB: HACKATHON PIPELINE ──────────────────────────────────────── */}
+        {activeTab === 'hackathon' && (
+          <HackathonPipelineView />
         )}
 
         {/* ─── TAB: COPILOT ─────────────────────────────────────────────────── */}

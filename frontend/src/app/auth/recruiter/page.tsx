@@ -199,9 +199,9 @@ export default function RecruiterAuthPage() {
               <div className="grid grid-cols-2 gap-2 mb-4">
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     setFormData({ ...formData, email: 'recruiter@matrix.ai', password: 'password123' });
-                    const res = login('recruiter@matrix.ai', 'password123', 'recruiter');
+                    const res = await login('recruiter@matrix.ai', 'password123', 'recruiter');
                     if (res.success) router.push('/recruiter/dashboard');
                   }}
                   className="px-2.5 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-400/50 rounded-lg text-xs text-indigo-300 font-medium text-left transition-all shadow-sm flex items-center justify-between"
@@ -211,9 +211,9 @@ export default function RecruiterAuthPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     setFormData({ ...formData, email: 'recruiter@company.com', password: '123456' });
-                    const res = login('recruiter@company.com', '123456', 'recruiter');
+                    const res = await login('recruiter@company.com', '123456', 'recruiter');
                     if (res.success) router.push('/recruiter/dashboard');
                   }}
                   className="px-2.5 py-2 bg-stone-800 hover:bg-stone-700 border border-stone-700 rounded-lg text-xs text-stone-300 font-medium text-left transition-all shadow-sm flex items-center justify-between"

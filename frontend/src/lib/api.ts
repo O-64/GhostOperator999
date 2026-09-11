@@ -349,8 +349,123 @@ export async function clearCopilotHistory(): Promise<void> {
   return request<void>('/copilot/history', { method: 'DELETE' });
 }
 
-// ─── Health ───────────────────────────────────────────────────────────────────
-
 export async function checkHealth(): Promise<{ status: string }> {
   return request('/health');
 }
+
+// ─── Multi-Agent Intelligence Services ────────────────────────────────────────
+
+export async function uploadFile(payload: {
+  fileName: string;
+  fileType: string;
+  base64Data?: string;
+  textContent?: string;
+}): Promise<{
+  success: boolean;
+  fileName: string;
+  url: string;
+  isCloudinary: boolean;
+  sizeBytes: number;
+}> {
+  return request('/upload', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function parseResumeAgent(payload: {
+  resumeText?: string;
+  base64Data?: string;
+  fileName?: string;
+  isPdf?: boolean;
+}): Promise<any> {
+  return request('/agents/resume/parse', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function runBenchmarkDemo(jobId?: string): Promise<{
+  status: string;
+  benchmarkJobs: any[];
+  resultsByJob: Record<string, { job: any; totalCandidatesEvaluated: number; rankings: any[] }>;
+}> {
+  return request('/agents/benchmark/run', {
+    method: 'POST',
+    body: JSON.stringify({ jobId }),
+  });
+}
+
+export async function runMultiAgentPipeline(payload: {
+  candidate: any;
+  job: any;
+  isPdf?: boolean;
+}): Promise<any> {
+  return request('/agents/pipeline/run', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function analyzePPT(payload: {
+  base64Data?: string;
+  textContent?: string;
+  fileName?: string;
+  isPptx?: boolean;
+}): Promise<any> {
+  return request('/agents/ppt/analyze', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function checkCandidateFraud(payload: {
+  candidate: any;
+  resumeText?: string;
+}): Promise<any> {
+  return request('/agents/fraud/check', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function startAIInterview(payload: {
+  roleTitle: string;
+  candidateSkills?: string[];
+  seniority?: string;
+}): Promise<any> {
+  return request('/agents/interview/start', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function submitInterviewAnswer(payload: {
+  question: string;
+  answer: string;
+  roleTitle: string;
+}): Promise<any> {
+  return request('/agents/interview/respond', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function analyzeGitHub(githubUrl: string): Promise<any> {
+  return request('/agents/github/analyze', {
+    method: 'POST',
+    body: JSON.stringify({ githubUrl }),
+  });
+}
+
+export async function getHackathonData(): Promise<any> {
+  return request('/agents/hackathon/data');
+}
+
+export async function enhancedCopilotSearch(query: string, candidates?: any[]): Promise<any> {
+  return request('/agents/copilot/nl-search', {
+    method: 'POST',
+    body: JSON.stringify({ query, candidates }),
+  });
+}
+

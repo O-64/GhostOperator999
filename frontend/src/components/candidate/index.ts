@@ -7,3 +7,4 @@ export { default as AgentWidget } from './AgentWidget';
 export { default as AgentAnalysisOverlay } from './AgentAnalysisOverlay';
 export { default as SkillBarChart } from './SkillBarChart';
 export { default as CodeEditor } from './CodeEditor';
+export { default as AIInterviewModal } from './AIInterviewModal';

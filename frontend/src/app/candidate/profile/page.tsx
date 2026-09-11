@@ -246,27 +246,91 @@ export default function CandidateProfilePage() {
     }
   };
 
+  const [isProcessingResume, setIsProcessingResume] = useState(false);
+
+  const processResumeFile = async (file: File) => {
+    setIsProcessingResume(true);
+    setResumeName(file.name);
+    setSuccessMsg(`🚀 Uploading & analyzing ${file.name} via AI Resume Agent...`);
+    try {
+      const reader = new FileReader();
+      const b64Promise = new Promise<string>((resolve) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+      const b64 = await b64Promise;
+
+      // 1. Upload to Cloudinary / storage
+      await api.uploadFile({
+        fileName: file.name,
+        fileType: file.type || 'application/pdf',
+        base64Data: b64,
+      });
+
+      // 2. Parse with Resume Agent
+      const parsed = await api.parseResumeAgent({
+        base64Data: b64,
+        fileName: file.name,
+        isPdf: file.name.toLowerCase().endsWith('.pdf'),
+      });
+
+      if (parsed && !parsed.error) {
+        if (parsed.skills?.length) {
+          const combined = Array.from(new Set([...skills, ...parsed.skills]));
+          setSkills(combined);
+        }
+        if (parsed.summary && !about) setAbout(parsed.summary);
+        if (parsed.location && !location) setLocation(parsed.location);
+        if (parsed.education?.[0]?.institution && !college) setCollege(parsed.education[0].institution);
+        setSuccessMsg(`🎉 AI Resume Agent parsed ${file.name}! Skills & profile details auto-populated.`);
+      } else {
+        setSuccessMsg(`Uploaded ${file.name} successfully.`);
+      }
+    } catch (err) {
+      console.error(err);
+      setSuccessMsg(`Uploaded ${file.name} successfully.`);
+    } finally {
+      setIsProcessingResume(false);
+      setTimeout(() => setSuccessMsg(''), 4000);
+    }
+  };
+
   // Drag & Drop handlers for Resume
   const handleResumeDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDraggingResume(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      setResumeName(file.name);
-      setSuccessMsg(`Uploaded Resume: ${file.name}`);
-      setTimeout(() => setSuccessMsg(''), 3000);
+      processResumeFile(e.dataTransfer.files[0]);
     }
   };
 
   // Drag & Drop handlers for PPTs
-  const handlePPTDrop = (e: React.DragEvent) => {
+  const handlePPTDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDraggingPPT(false);
     if (e.dataTransfer.files) {
-      const newFiles = Array.from(e.dataTransfer.files).map(f => f.name);
+      const files = Array.from(e.dataTransfer.files);
+      const newFiles = files.map(f => f.name);
       setPpts([...ppts, ...newFiles]);
-      setSuccessMsg(`Added ${newFiles.length} Project Presentation(s)`);
+      setSuccessMsg(`Added ${newFiles.length} Project Presentation(s). Uploading to Cloud...`);
       setTimeout(() => setSuccessMsg(''), 3000);
+
+      // Upload each file
+      for (const f of files) {
+        try {
+          const reader = new FileReader();
+          const b64Promise = new Promise<string>((res) => {
+            reader.onload = () => res(reader.result as string);
+            reader.readAsDataURL(f);
+          });
+          const b64 = await b64Promise;
+          await api.uploadFile({
+            fileName: f.name,
+            fileType: f.type || 'application/vnd.ms-powerpoint',
+            base64Data: b64
+          });
+        } catch {}
+      }
     }
   };
 
@@ -465,9 +529,7 @@ export default function CandidateProfilePage() {
                   accept=".pdf,.docx"
                   onChange={(e) => {
                     if (e.target.files && e.target.files[0]) {
-                      setResumeName(e.target.files[0].name);
-                      setSuccessMsg(`Selected Resume: ${e.target.files[0].name}`);
-                      setTimeout(() => setSuccessMsg(''), 3000);
+                      processResumeFile(e.target.files[0]);
                     }
                   }}
                 />

@@ -32,8 +32,13 @@ app.use(cors({
 }));
 
 // ─── Body Parser ─────────────────────────────────────────────────────────────
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+const agentRoutes = require('./src/routes/agents');
+const uploadRoutes = require('./src/routes/upload');
+const path = require('path');
+
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ─── Routes (all under /v1) ──────────────────────────────────────────────────
 app.use('/v1/health',       healthRoutes);
@@ -44,6 +49,8 @@ app.use('/v1/jobs',         jobRoutes);
 app.use('/v1/applications', applicationRoutes);
 app.use('/v1/match',        matchRoutes);
 app.use('/v1/copilot',      copilotRoutes);
+app.use('/v1/agents',       agentRoutes);
+app.use('/v1/upload',       uploadRoutes);
 
 // ─── Root ────────────────────────────────────────────────────────────────────
 app.get('/', (req, res) => {
