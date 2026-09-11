@@ -1,0 +1,34 @@
+---
+description: AI Talent Matrix architecture — source of truth and stack constraints
+alwaysApply: true
+---
+
+# AI Talent Matrix Rules
+
+The architecture PDF is the source of truth.
+
+## Stack (do not change)
+
+| Layer | Service |
+|-------|---------|
+| Database | **Supabase** (PostgreSQL) |
+| Authentication | **Supabase Auth** |
+| Storage | **Cloudinary** |
+| Vector DB | **Qdrant Cloud** |
+| Frontend | **Next.js App Router** |
+| Gateway | **Node.js Express** |
+| AI services | **Python FastAPI** |
+
+## Constraints
+
+- Never replace Supabase with local PostgreSQL.
+- Never recommend Docker unless the user explicitly asks.
+- Prefer free-tier services.
+- Never redesign the architecture — only implement it.
+- The architecture PDF overrides conflicting code or docs in the repo.
+
+## Request flow
+
+```
+Next.js → Express Gateway → FastAPI (AI) / Supabase / Cloudinary / Qdrant
+```
