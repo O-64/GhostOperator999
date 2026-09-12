@@ -18,9 +18,9 @@ HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY", "") or os.getenv("HF_TOKE
 
 # Model IDs are configurable via env vars so a future provider-side deprecation
 # doesn't require touching code — just update the .env value.
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
-# Free, solid instruction-tuned model well supported on HF Inference Providers.
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 HUGGINGFACE_MODEL = os.getenv("HUGGINGFACE_MODEL", "meta-llama/Llama-3.1-8B-Instruct")
 
 
@@ -162,6 +162,38 @@ def call_huggingface(prompt: str, system_instruction: str = "", model: str = Non
     with urllib.request.urlopen(req, timeout=45) as resp:
         data = json.loads(resp.read().decode("utf-8"))
         choices = data.get("choices", [])
+def call_openai(prompt: str, system_instruction: str = "", model: str = None) -> str:
+    """Call OpenAI API (gpt-4o-mini)."""
+    if not OPENAI_API_KEY:
+        raise ValueError("OPENAI_API_KEY is not set")
+
+    model = model or OPENAI_MODEL
+    url = "https://api.openai.com/v1/chat/completions"
+    messages = []
+    if system_instruction:
+        messages.append({"role": "system", "content": system_instruction})
+    messages.append({"role": "user", "content": prompt})
+
+    payload = {
+        "model": model,
+        "messages": messages,
+        "temperature": 0.2,
+        "max_tokens": 2048,
+    }
+
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {OPENAI_API_KEY}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+
+    with urllib.request.urlopen(req, timeout=45) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+        choices = data.get("choices", [])
         if choices:
             return choices[0].get("message", {}).get("content", "")
     return ""
@@ -170,17 +202,16 @@ def call_huggingface(prompt: str, system_instruction: str = "", model: str = Non
 def call_llm(prompt: str, system_instruction: str = "", prefer_json: bool = True) -> str:
     """
     Unified LLM caller. Tries providers in order, based on whichever API
-    keys are present in .env: Gemini -> Groq -> Hugging Face.
+    keys are present in .env: Gemini -> Groq -> OpenAI -> Hugging Face.
     Every agent already has a deterministic fallback for when this returns
-    an empty string (no keys configured / all providers failed), so the
-    platform stays fully functional even with zero LLM keys set.
+    an empty string, so the platform stays fully functional.
     """
     if prefer_json and system_instruction:
         system_instruction += "\nOutput ONLY valid JSON without extra explanatory text or markdown backticks."
     elif prefer_json and not system_instruction:
         system_instruction = "You are an expert AI system. Output ONLY valid JSON."
 
-    # 1) Gemini 2.5 Flash (fast + generous free tier)
+    # 1) Gemini (fast + generous free tier)
     try:
         if GEMINI_API_KEY:
             res = call_gemini(prompt, system_instruction)
@@ -189,16 +220,25 @@ def call_llm(prompt: str, system_instruction: str = "", prefer_json: bool = True
     except Exception as e:
         print(f"[LLM WARNING] Gemini call failed: {e}. Falling back to Groq...")
 
-    # 2) Groq (very low latency)
+    # 2) Groq (ultra low latency)
     try:
         if GROQ_API_KEY:
             res = call_groq(prompt, system_instruction)
             if res.strip():
                 return res
     except Exception as e:
-        print(f"[LLM WARNING] Groq call failed: {e}. Falling back to Hugging Face...")
+        print(f"[LLM WARNING] Groq call failed: {e}. Falling back to OpenAI...")
 
-    # 3) Hugging Face Inference Providers (works with the free HF token tier)
+    # 3) OpenAI
+    try:
+        if OPENAI_API_KEY:
+            res = call_openai(prompt, system_instruction)
+            if res.strip():
+                return res
+    except Exception as e:
+        print(f"[LLM WARNING] OpenAI call failed: {e}. Falling back to Hugging Face...")
+
+    # 4) Hugging Face Inference Providers
     try:
         if HUGGINGFACE_API_KEY:
             res = call_huggingface(prompt, system_instruction)
